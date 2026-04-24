@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-dotenv
+supabase
+pyjwt
+httpx
+pydantic
+psycopg2

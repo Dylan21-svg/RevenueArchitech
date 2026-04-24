@@ -1,0 +1,114 @@
+version: '3.9'
+
+services:
+  # Redis: Shared cache and Celery broker
+  redis:
+    image: redis:7-alpine
+    container_name: sting-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Postgres: Audit history & artifacts storage (Week 2)
+  postgres:
+    image: postgres:15-alpine
+    container_name: sting-postgres
+    environment:
+      POSTGRES_DB: sting_engine
+      POSTGRES_USER: audit_user
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audit_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend: Main audit endpoint
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sting-api
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://audit_user:changeme@postgres:5432/sting_engine
+      SHOPIFY_API_KEY: ${SHOPIFY_API_KEY}
+      SHOPIFY_API_SECRET: ${SHOPIFY_API_SECRET}
+      SHOPIFY_REDIRECT_URI: http://localhost:8000/auth/callback
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      ENV: production
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: uvicorn main_week1:app --host 0.0.0.0 --port 8000 --workers 2
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./:/app
+
+  # Celery Worker: Background competitor scraping
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sting-worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://audit_user:changeme@postgres:5432/sting_engine
+      ENV: production
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: celery -A tasks celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./:/app
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Celery Flower: Task monitoring dashboard (optional)
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sting-flower
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+    command: celery -A tasks celery_app flower --port=5555 --broker=redis://redis:6379/0
+    volumes:
+      - ./:/app
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  default:
+    name: sting-network

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sting Shopify Bridge</title>
+  <style>
+    body { margin: 0; font-family: Inter, sans-serif; background: #09090f; color: #ffffff; }
+    .container { padding: 20px; max-width: 340px; }
+    h1 { font-size: 1.2rem; margin-bottom: 0.6rem; }
+    p { margin: 0.75rem 0; font-size: 0.95rem; line-height: 1.5; color: #d1d5db; }
+    .badge { display: inline-flex; padding: 0.35rem 0.75rem; border-radius: 999px; background: #0f766e; color: #d1fae5; font-size: 0.8rem; }
+    .field { display: grid; gap: 0.35rem; margin-top: 1rem; }
+    .field label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
+    .field input { width: 100%; border: 1px solid #334155; border-radius: 0.75rem; padding: 0.85rem 1rem; background: #020617; color: #e2e8f0; }
+    .button { width: 100%; border: none; border-radius: 0.95rem; background: #00e67a; color: #020617; font-weight: 700; padding: 0.95rem 1rem; cursor: pointer; margin-top: 1rem; }
+    .note { font-size: 0.78rem; color: #94a3b8; margin-top: 0.75rem; }
+    .status { margin-top: 1rem; font-size: 0.82rem; color: #a5f3fc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Sting Shopify Bridge</h1>
+    <p class="badge">Extension skeleton ready</p>
+    <p>This popup is the first step toward the Shopify Admin bridge. It will later surface the audit score, mobile CTA warnings, and action-language fixes directly in your store admin.</p>
+    <p>Current status: manifest configured, background worker loaded, and content script attached to Shopify pages.</p>
+
+    <div class="field">
+      <label for="store-domain">Shopify Store Domain</label>
+      <input id="store-domain" placeholder="example-store.myshopify.com" />
+    </div>
+    <div class="field">
+      <label for="api-token">Admin API Token</label>
+      <input id="api-token" placeholder="shpat_..." />
+    </div>
+    <button id="create-preview" class="button">Create Optimized Preview Theme</button>
+    <button id="apply-fixes" class="button">Apply Architect Fixes</button>
+    <p class="note">This will create an unpublished Shopify preview theme where fixes can be applied safely.</p>
+    <div id="status" class="status"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
