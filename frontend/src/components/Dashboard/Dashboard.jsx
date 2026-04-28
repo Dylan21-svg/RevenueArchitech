@@ -108,37 +108,81 @@ const AuditScoreGauge = ({ score, label }) => {
 // THUMB ZONE VISUALIZATION
 // ============================================================================
 
-const ThumbZoneVisualization = ({ thumbZoneResult }) => {
-  if (!thumbZoneResult) return null;
+// ============================================================================
+// REVENUE LEAK SCORE GAUGE
+// ============================================================================
 
-  const { initial_viewport_score, post_scroll_score, best_state, best_score, recommendation } = thumbZoneResult;
+const LeakScoreGauge = ({ score, categoryScores }) => {
+  const { isDark } = useThemeStore();
+  
+  const getColor = (s) => {
+    if (s <= 30) return '#10b981'; // Low leak (good)
+    if (s <= 60) return '#f59e0b'; // Medium leak
+    return '#ef4444'; // High leak (bad)
+  };
 
-  const states = [
-    { name: 'Initial Viewport', score: initial_viewport_score?.overall_score * 100 || 0 },
-    { name: 'Post Scroll', score: post_scroll_score?.overall_score * 100 || 0 },
-  ];
-
+  const percentage = Math.min(100, Math.max(0, score));
+  
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">Thumb Zone Accessibility</h3>
+    <div className={`p-8 rounded-3xl border backdrop-blur-xl flex flex-col items-center justify-center ${
+      isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-xl'
+    }`}>
+      <h3 className={`text-lg font-bold mb-6 uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        Revenue Leak Score
+      </h3>
       
-      <div className="flex justify-around mb-6">
-        {states.map((state) => (
-          <AuditScoreGauge score={Math.round(state.score)} label={state.name} />
+      <div className="relative w-48 h-48 mb-8">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle
+            cx="96" cy="96" r="88"
+            fill="none"
+            stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
+            strokeWidth="12"
+          />
+          <motion.circle
+            initial={{ strokeDasharray: "0 553" }}
+            animate={{ strokeDasharray: `${(percentage / 100) * 553} 553` }}
+            transition={{ duration: 2, ease: "easeOut" }}
+            cx="96" cy="96" r="88"
+            fill="none"
+            stroke={getColor(score)}
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <motion.span 
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`text-6xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}
+          >
+            {Math.round(score)}
+          </motion.span>
+          <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            Leakage
+          </span>
+        </div>
+      </div>
+
+      <div className="w-full space-y-4">
+        {Object.entries(categoryScores || {}).map(([category, s], idx) => (
+          <div key={category} className="space-y-1">
+            <div className="flex justify-between text-xs font-bold uppercase tracking-wider">
+              <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>{category}</span>
+              <span className={isDark ? 'text-white' : 'text-slate-900'}>{Math.round(s * 100)}% Health</span>
+            </div>
+            <div className={`h-1.5 w-full rounded-full overflow-hidden ${isDark ? 'bg-white/5' : 'bg-slate-100'}`}>
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${s * 100}%` }}
+                transition={{ duration: 1, delay: 0.5 + (idx * 0.1) }}
+                className={`h-full rounded-full ${
+                  s > 0.7 ? 'bg-emerald-500' : s > 0.4 ? 'bg-amber-500' : 'bg-crimson-500'
+                }`}
+              />
+            </div>
+          </div>
         ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 text-sm">
-        <div className="p-3 bg-gray-50 rounded-lg">
-          <span className="font-medium">Best State:</span> {best_state}
-        </div>
-        <div className="p-3 bg-gray-50 rounded-lg">
-          <span className="font-medium">Best Score:</span> {Math.round(best_score * 100)}
-        </div>
-      </div>
-
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-        <p className="text-sm text-blue-800">{recommendation}</p>
       </div>
     </div>
   );
@@ -182,86 +226,57 @@ const RevenueImpactCard = ({ wastedAdSpend, revenueDrop, bounceRate }) => {
 // FRICTION ANALYSIS
 // ============================================================================
 
-const FrictionAnalysis = ({ frictionWords, actionWords, microFriction }) => {
+// ============================================================================
+// PERFORMANCE METRICS SNAPSHOT
+// ============================================================================
+
+const PerformanceSnapshot = ({ loadTime, bounceRate, wastedSpend }) => {
+  const { isDark } = useThemeStore();
+  
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">Friction Analysis</h3>
+    <div className={`p-8 rounded-3xl border backdrop-blur-xl ${
+      isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-lg'
+    }`}>
+      <h3 className={`text-lg font-bold mb-8 uppercase tracking-widest ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        Performance Signals
+      </h3>
       
-      <div className="mb-4">
-        <p className="text-sm font-medium mb-2">Micro-friction Score: {microFriction.toFixed(1)}%</p>
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className={`h-2 rounded-full ${microFriction > 5 ? 'bg-red-500' : 'bg-green-500'}`}
-            style={{ width: `${Math.min(100, microFriction * 10)}%` }}
-          />
+      <div className="grid grid-cols-1 gap-6">
+        <div className="flex items-center gap-6">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'}`}>
+            <Zap className={`w-7 h-7 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+          </div>
+          <div>
+            <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Load Speed</p>
+            <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{loadTime?.toFixed(2)}s</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isDark ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
+            <ArrowUpRight className={`w-7 h-7 ${isDark ? 'text-amber-400' : 'text-amber-600'}`} />
+          </div>
+          <div>
+            <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Bounce Velocity</p>
+            <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>{Math.round(bounceRate)}%</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-6">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isDark ? 'bg-crimson-500/10' : 'bg-crimson-50'}`}>
+            <DollarSign className={`w-7 h-7 ${isDark ? 'text-crimson-400' : 'text-crimson-600'}`} />
+          </div>
+          <div>
+            <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Wasted Ad Spend</p>
+            <p className={`text-2xl font-black text-crimson-500`}>${Math.round(wastedSpend)}/day</p>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-sm font-medium mb-2">Friction Words Found:</p>
-          <div className="flex flex-wrap gap-2">
-            {frictionWords.length > 0 ? (
-              frictionWords.map((word) => (
-                <span key={word} className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">
-                  {word}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-sm">None detected</span>
-            )}
-          </div>
-        </div>
-        
-        <div>
-          <p className="text-sm font-medium mb-2">Action Words Found:</p>
-          <div className="flex flex-wrap gap-2">
-            {actionWords.length > 0 ? (
-              actionWords.map((word) => (
-                <span key={word} className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
-                  {word}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-400 text-sm">None detected</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// COMPETITOR COMPARISON
-// ============================================================================
-
-const CompetitorComparison = ({ competitorComparison, priceDelta, offerParity }) => {
-  return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">Competitor Insights</h3>
-      
-      <div className="space-y-3">
-        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-          <span className="font-medium">Comparison:</span>
-          <span>{competitorComparison}</span>
-        </div>
-        
-        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-          <span className="font-medium">Price Delta:</span>
-          <span className={priceDelta > 0 ? 'text-green-600' : 'text-red-600'}>
-            {priceDelta > 0 ? '+' : ''}{priceDelta}%
-          </span>
-        </div>
-        
-        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-          <span className="font-medium">Offer Parity:</span>
-          <span className={`px-2 py-1 rounded text-sm ${
-            offerParity === 'Equal' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-          }`}>
-            {offerParity}
-          </span>
-        </div>
+      <div className={`mt-10 p-6 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
+        <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <span className="font-bold text-blue-500">Analysis:</span> Your store is losing potential customers primarily due to high friction in the early stage of the funnel.
+        </p>
       </div>
     </div>
   );
@@ -276,76 +291,11 @@ const ProblemsFound = ({ audit }) => {
   
   if (!audit) return null;
 
-  // Map technical results to simple language problems
-  const problems = [];
+  // Extract fixes from the new pipeline report
+  const report = audit.report || {};
+  const topFixes = report.top_fixes || [];
 
-  // Bounce rate problem
-  if (audit.bounce_rate > 0.5) {
-    problems.push({
-      severity: 'critical',
-      title: 'Visitors leave too quickly',
-      description: `${Math.round(audit.bounce_rate * 100)}% of visitors leave without taking action. This means your page isn't grabbing attention or making people want to stay.`,
-      impact: `You're losing approximately $${Math.round(audit.wasted_ad_spend)} daily in ad spend because visitors aren't converting.`,
-      fix: 'Improve your headline, add better images, and make your value proposition clearer above the fold.'
-    });
-  }
-
-  // Thumb zone problem
-  if (audit.thumb_zone_result?.initial_viewport_score?.overall_score < 0.7) {
-    problems.push({
-      severity: 'critical',
-      title: 'Important content is hard to reach',
-      description: 'Your key information (prices, CTAs, product info) is hidden below the fold or requires too much scrolling on mobile.',
-      impact: 'Mobile users (who are most buyers) can\'t see your main offer without extra effort.',
-      fix: 'Move your most important content (headline, main CTA, key benefits) into the first screen view.'
-    });
-  }
-
-  // Friction words problem
-  if (audit.micro_friction > 5) {
-    problems.push({
-      severity: 'warning',
-      title: 'Your copy has "stop" words',
-      description: `Found ${audit.friction_words_found?.length || 0} words that make visitors hesitate (like "maybe", "条件", "需要").`,
-      impact: 'These words create doubt and reduce conversion rates.',
-      fix: 'Replace friction words with action-oriented language like "Get", "Start", "Join".'
-    });
-  }
-
-  // Competitor comparison problem
-  if (audit.competitor_comparison === 'underloaded') {
-    problems.push({
-      severity: 'warning',
-      title: 'Your page has less info than competitors',
-      description: 'Competitors show more trust signals, reviews, and offers than your page.',
-      impact: 'Visitors may think your store is less trustworthy or established.',
-      fix: 'Add more social proof, customer reviews, and trust badges to match competitor density.'
-    });
-  }
-
-  // Offer parity problem
-  if (audit.offer_parity !== 'Equal') {
-    problems.push({
-      severity: 'warning',
-      title: 'Missing offers that competitors have',
-      description: 'Your competitors are showing sales and discounts that you\'re not showing.',
-      impact: 'Price-conscious visitors may choose competitors over you.',
-      fix: 'Consider adding promotional offers, bundle deals, or limited-time discounts.'
-    });
-  }
-
-  // Performance problem (mock check)
-  if (audit.page_load_time > 3) {
-    problems.push({
-      severity: 'critical',
-      title: 'Your page loads too slowly',
-      description: `Your page takes ${audit.page_load_time?.toFixed(1) || '?'} seconds to load.`,
-      impact: 'Slow pages cause visitors to leave before seeing your content.',
-      fix: 'Optimize images, remove unnecessary apps, and consider a faster theme.'
-    });
-  }
-
-  if (problems.length === 0) {
+  if (topFixes.length === 0) {
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
@@ -382,7 +332,7 @@ const ProblemsFound = ({ audit }) => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>
-          Problems Found
+          High-Priority Fixes
         </h3>
         <motion.span 
           whileHover={{ scale: 1.05 }}
@@ -392,96 +342,85 @@ const ProblemsFound = ({ audit }) => {
               : 'bg-red-100 text-red-700'
           }`}
         >
-          {problems.filter(p => p.severity === 'critical').length} Critical
+          {topFixes.length} Actionable Issues
         </motion.span>
       </div>
 
-      {problems.map((problem, index) => (
+      {topFixes.map((fix, index) => (
         <motion.div 
-          key={index}
+          key={fix.id || index}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.1 }}
           whileHover={{ scale: 1.01 }}
           className={`p-5 rounded-2xl border backdrop-blur-md transition-all ${
-            problem.severity === 'critical' 
-              ? isDark 
-                ? 'bg-crimson-500/10 border-crimson-500/30' 
-                : 'bg-red-50 border-red-200'
-              : isDark 
-                ? 'bg-amber-500/10 border-amber-500/30' 
-                : 'bg-yellow-50 border-yellow-200'
+            isDark 
+              ? 'bg-white/5 border-white/20' 
+              : 'bg-white border-gray-200 shadow-sm'
           }`}
         >
           <div className="flex items-start gap-4">
             <motion.div 
               whileHover={{ scale: 1.1, rotate: 5 }}
               className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                problem.severity === 'critical' 
-                  ? isDark ? 'bg-crimson-500/20' : 'bg-red-200'
-                  : isDark ? 'bg-amber-500/20' : 'bg-yellow-200'
+                isDark ? 'bg-blue-500/20' : 'bg-blue-100'
               }`}
             >
-              <AlertTriangle className={`w-5 h-5 ${
-                problem.severity === 'critical' 
-                  ? isDark ? 'text-crimson-400' : 'text-red-700'
-                  : isDark ? 'text-amber-400' : 'text-yellow-700'
+              <Zap className={`w-5 h-5 ${
+                isDark ? 'text-blue-400' : 'text-blue-600'
               }`} />
             </motion.div>
             <div className="flex-1">
-              <h4 className={`font-semibold text-lg ${
-                problem.severity === 'critical' 
-                  ? isDark ? 'text-crimson-400' : 'text-red-800'
-                  : isDark ? 'text-amber-400' : 'text-yellow-800'
-              }`}>
-                {problem.title}
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className={`font-semibold text-lg ${
+                  isDark ? 'text-white' : 'text-slate-900'
+                }`}>
+                  {fix.title}
+                </h4>
+                <span className={`text-[10px] uppercase font-bold tracking-widest px-2 py-1 rounded ${
+                  fix.deployment_mode === 'auto-fix' 
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {fix.deployment_mode}
+                </span>
+              </div>
+              
               <p className={`text-sm mt-2 ${isDark ? 'text-slate-300' : 'text-gray-700'}`}>
-                {problem.description}
+                {fix.suggested_fix}
               </p>
               
-              <motion.div 
-                whileHover={{ scale: 1.02 }}
-                className={`mt-4 p-4 rounded-xl ${
-                  isDark ? 'bg-white/5' : 'bg-white/50'
-                }`}
-              >
-                <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                  💰 Impact: {problem.impact}
-                </p>
-              </motion.div>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className={`p-3 rounded-xl ${isDark ? 'bg-white/5' : 'bg-slate-50'}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+                    Confidence
+                  </p>
+                  <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                    {Math.round(fix.confidence * 100)}% Match
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl ${isDark ? 'bg-emerald-500/10' : 'bg-emerald-50'}`}>
+                  <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-emerald-600/60' : 'text-emerald-600/60'}`}>
+                    Estimated Lift
+                  </p>
+                  <p className={`text-sm font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                    +{Math.round(fix.expected_metric_improvement * 100)}% CVR
+                  </p>
+                </div>
+              </div>
               
-              <div className="mt-4 flex items-center gap-2">
-                <motion.div 
-                  whileHover={{ scale: 1.02 }}
-                  className={`flex-1 p-4 rounded-xl border ${
-                    isDark 
-                      ? 'bg-emerald-500/10 border-emerald-500/30' 
-                      : 'bg-blue-50 border-blue-200'
-                  }`}
-                >
-                  <p className={`text-sm font-medium ${
-                    isDark ? 'text-emerald-400' : 'text-blue-800'
-                  }`}>
-                    ✅ What to do next:
-                  </p>
-                  <p className={`text-sm mt-1 ${
-                    isDark ? 'text-emerald-300/80' : 'text-blue-700'
-                  }`}>
-                    {problem.fix}
-                  </p>
-                </motion.div>
+              <div className="mt-4 flex items-center gap-3">
+                <button className={`flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  fix.deployment_mode === 'auto-fix'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}>
+                  {fix.deployment_mode === 'auto-fix' ? 'Execute Fix' : 'View Implementation'}
+                </button>
               </div>
             </div>
           </div>
         </motion.div>
-      ))}
-                  <p className="text-sm text-blue-700 mt-1">{problem.fix}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       ))}
     </div>
   );
@@ -670,7 +609,7 @@ const Dashboard = () => {
             {isRunningAudit ? 'Running...' : 'Run Audit'}
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Score Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -709,27 +648,15 @@ const Dashboard = () => {
 
       {/* Current Audit Results */}
       {currentAudit && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ThumbZoneVisualization thumbZoneResult={currentAudit.thumb_zone_result} />
-          <RevenueImpactCard 
-            wastedAdSpend={currentAudit.wasted_ad_spend}
-            revenueDrop={currentAudit.revenue_drop}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <LeakScoreGauge 
+            score={currentAudit.report?.leak_score || currentAudit.leak_score || 0} 
+            categoryScores={currentAudit.report?.category_scores} 
+          />
+          <PerformanceSnapshot 
+            loadTime={currentAudit.report?.category_scores?.load_time || currentAudit.load_time}
             bounceRate={currentAudit.bounce_rate}
-          />
-        </div>
-      )}
-
-      {currentAudit && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FrictionAnalysis 
-            frictionWords={currentAudit.friction_words_found}
-            actionWords={currentAudit.action_words_found}
-            microFriction={currentAudit.micro_friction}
-          />
-          <CompetitorComparison 
-            competitorComparison={currentAudit.competitor_comparison}
-            priceDelta={currentAudit.price_delta}
-            offerParity={currentAudit.offer_parity}
+            wastedSpend={currentAudit.report?.estimated_impact?.wasted_daily_spend || currentAudit.wasted_ad_spend}
           />
         </div>
       )}

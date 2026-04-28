@@ -45,7 +45,7 @@ class WebSocketService {
   }
 
   // Subscribe to specific event
-  subscribe(event: string, callback: (data: any) => void) {
+  subscribe(event, callback) {
     if (!this.socket) {
       this.connect();
     }
@@ -60,7 +60,7 @@ class WebSocketService {
   }
 
   // Unsubscribe from event
-  unsubscribe(event: string, callback?: (data: any) => void) {
+  unsubscribe(event, callback) {
     if (!this.socket) return;
 
     if (callback) {
@@ -77,7 +77,7 @@ class WebSocketService {
   }
 
   // Emit event to server
-  emit(event: string, data: any) {
+  emit(event, data) {
     if (!this.socket?.connected) {
       console.warn('WebSocket not connected');
       return;
@@ -90,47 +90,47 @@ class WebSocketService {
   // ============================================================================
 
   // Fix application progress
-  onFixProgress(callback: (progress: { stage: string; percentage: number; message: string }) => void) {
+  onFixProgress(callback) {
     this.subscribe('fix:progress', callback);
   }
 
-  offFixProgress(callback?: (progress: any) => void) {
+  offFixProgress(callback) {
     this.unsubscribe('fix:progress', callback);
   }
 
   // Audit completion
-  onAuditComplete(callback: (result: any) => void) {
+  onAuditComplete(callback) {
     this.subscribe('audit:complete', callback);
   }
 
-  offAuditComplete(callback?: (result: any) => void) {
+  offAuditComplete(callback) {
     this.unsubscribe('audit:complete', callback);
   }
 
   // A/B test updates
-  onABTestUpdate(callback: (update: { testId: number; status: string; metrics: any }) => void) {
+  onABTestUpdate(callback) {
     this.subscribe('abtest:update', callback);
   }
 
-  offABTestUpdate(callback?: (update: any) => void) {
+  offABTestUpdate(callback) {
     this.unsubscribe('abtest:update', callback);
   }
 
   // Real-time metrics
-  onMetricsUpdate(callback: (metrics: any) => void) {
+  onMetricsUpdate(callback) {
     this.subscribe('metrics:update', callback);
   }
 
-  offMetricsUpdate(callback?: (metrics: any) => void) {
+  offMetricsUpdate(callback) {
     this.unsubscribe('metrics:update', callback);
   }
 
   // Store connection status
-  onStoreStatus(callback: (status: { storeId: number; connected: boolean }) => void) {
+  onStoreStatus(callback) {
     this.subscribe('store:status', callback);
   }
 
-  offStoreStatus(callback?: (status: any) => void) {
+  offStoreStatus(callback) {
     this.unsubscribe('store:status', callback);
   }
 }

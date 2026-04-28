@@ -1,45 +1,34 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import jwt
-from app.core.config import settings
+from app.core.supabase import supabase
 
 security = HTTPBearer()
 
-def verify_jwt(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
-    if not settings.SUPABASE_JWT_SECRET:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="JWT secret not configured",
-        )
     try:
-        # Supabase signs JWTs with HS256 using the JWT Secret
-        payload = jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False}
-        )
-        return payload
-    except jwt.ExpiredSignatureError:
+        # Securely validate the token with Supabase Auth API
+        # This handles all signature algorithms (HS256, ES256, RS256) automatically
+        # without needing to manage JWKS or PEM public keys manually.
+        response = supabase.auth.get_user(token)
+        user = response.user
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token or user not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+            
+        return {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role
+        }
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail=f"Authentication error: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-def get_current_user(payload: dict = Depends(verify_jwt)):
-    user_id = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="User ID not found in token")
-    return {
-        "id": user_id,
-        "email": payload.get("email"),
-        "role": payload.get("role")
-    }
